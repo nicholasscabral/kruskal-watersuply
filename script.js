@@ -13,21 +13,22 @@ const defaultEdges = [
   // { data: { source: "D", target: "E", weight: 10 } },
 ];
 
-let sourceNodeId = null;
-let sourceNode = null;
+let selectedNode = null;
 let lastNodeId = defaultNodes.at(-1).data.id;
 
-function calculateDistance(node1, node2) {
-  const pos1 = node1.position();
-  const pos2 = node2.position();
+/////////// utils functions ///////////
+
+function calculateDistance(source, target) {
+  const pos1 = source.position();
+  const pos2 = target.position();
   const dx = Math.abs(pos1.x - pos2.x);
   const dy = Math.abs(pos1.y - pos2.y);
   const distance = Math.sqrt(dx * dx + dy * dy);
   return Math.floor(distance / 50);
 }
 
-function updateEdgesWeights(selectedNode) {
-  const connectedEdges = selectedNode.connectedEdges();
+function updateEdgesWeights(node) {
+  const connectedEdges = node.connectedEdges();
 
   connectedEdges.forEach((edge) => {
     const sourceNode = edge.source();
@@ -48,9 +49,7 @@ function generateGraphAsObject(edges) {
     const targetNode = edge.target().id();
     const weight = edge.data("weight");
 
-    console.log({ sourceNode, targetNode, weight });
-
-    const edgeObj = { weight, targetNode };
+    const edgeObj = { targetNode, weight };
 
     if (graph[sourceNode]) {
       graph[sourceNode].push(edgeObj);
@@ -61,51 +60,60 @@ function generateGraphAsObject(edges) {
   return graph;
 }
 
+function setSelectedNode(node) {
+  selectedNode = node;
+  selectedNode.addClass("selected");
+}
+
+function resetSelectedNode() {
+  selectedNode.removeClass("selected");
+  selectedNode = null;
+}
+
+/////////// behavior functions ///////////
+
 function createEdge(source, target) {
-  const newEdgeId = `${source}_${target}`;
-  cy.add({
-    data: { id: newEdgeId, source, target },
-  });
+  const sourceNodeId = source.id();
+  const targetNodeId = target.id();
+  const newEdgeId = `${sourceNodeId}_${targetNodeId}`;
+  const distance = calculateDistance(source, target);
+  const newEdge = {
+    data: {
+      id: newEdgeId,
+      source: sourceNodeId,
+      target: targetNodeId,
+      weight: distance,
+    },
+  };
+  cy.add(newEdge);
+  resetSelectedNode();
 }
 
 function createNode(event) {
   const newNodeId = String.fromCharCode(lastNodeId.charCodeAt(0) + 1);
   const position = event.position || event.cyPosition;
-  cy.add({
+  const newNode = {
     data: { id: newNodeId },
     position: { x: position.x, y: position.y },
-  });
+  };
+  cy.add(newNode);
 
-  if (sourceNodeId) {
-    createEdge(sourceNodeId, newNodeId);
-    sourceNodeId = null;
+  if (selectedNode) {
+    createEdge(selectedNode, newNode);
   }
 
   lastNodeId = newNodeId;
 }
 
+/////////// events callbacks /////////
+
 function handleNodeClick(event) {
   const node = event.target;
 
-  if (sourceNodeId === null) {
-    sourceNodeId = node.id();
-    sourceNode = node;
-    sourceNode.addClass("selected");
+  if (!selectedNode) {
+    setSelectedNode(node);
   } else {
-    const targetNodeId = node.id();
-
-    const newEdgeId = `${sourceNodeId}_${targetNodeId}`;
-    cy.add({
-      data: {
-        id: newEdgeId,
-        source: sourceNodeId,
-        target: targetNodeId,
-        weight: calculateDistance(sourceNode, node),
-      },
-    });
-
-    sourceNodeId = null;
-    sourceNode.removeClass("selected");
+    createEdge(selectedNode, node);
   }
 }
 
@@ -117,8 +125,8 @@ function handleCanvasClick(event) {
 }
 
 function handleNodeMove(event) {
-  const selectedNode = event.target;
-  updateEdgesWeights(selectedNode);
+  const grabbedNode = event.target;
+  updateEdgesWeights(grabbedNode);
   // move this to a button when implementation is fineshed
   console.log(generateGraphAsObject(cy.elements().edges()));
 }
