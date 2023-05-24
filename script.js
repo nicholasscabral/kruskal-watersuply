@@ -193,6 +193,12 @@ let cy = cytoscape({
   },
 });
 
+cy.zoom({
+  level: 1,
+  renderedPosition: { x: 1200, y: 600 },
+});
+cy.zoomingEnabled(false);
+
 cy.on("tap", handleCanvasClick);
 cy.on("tap", "node", handleNodeClick);
 cy.on("position", "node", handleNodeMove);
