@@ -1,0 +1,29 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* margin: 20px auto; */
+  font-family: 'Lato';
+  font-weight: 300;
+  /* overflow: hidden; */
+  text-align: center;
+  width: 100vw;
+  height: 100vh;
+}
+
+div#cy {
+  border: 5px solid black;
+  width: 95%;
+  height: 80%;
+  text-align: left;
+}
+
+h1 {
+  text-align: center;
+}
