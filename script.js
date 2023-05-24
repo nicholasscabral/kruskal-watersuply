@@ -33,6 +33,7 @@ let cy = cytoscape({
     {
       selector: "node",
       style: {
+        label: (element) => element.data("id"),
         height: 80,
         width: 80,
         "background-fit": "cover",
@@ -51,12 +52,12 @@ let cy = cytoscape({
     {
       selector: "edge",
       style: {
-        "curve-style": "bezier",
+        label: (ele) => ele.data("weight"),
         width: 6,
+        "curve-style": "bezier",
         "target-arrow-shape": "triangle",
         "line-color": "black",
         "target-arrow-color": "black",
-        label: (ele) => ele.data("weight"),
         "font-size": "28px",
         "text-background-opacity": 1,
         "text-background-color": "white",
