@@ -1,6 +1,6 @@
 const defaultNodes = [
-  { id: "A" },
-  { id: "B" },
+  { data: { id: "A" } },
+  { data: { id: "B" } },
   // { data: { id: "C" } },
   // { data: { id: "D" } },
   // { data: { id: "E" } },
@@ -34,6 +34,7 @@ let cy = cytoscape({
       selector: "node",
       style: {
         label: (element) => element.data("id"),
+        "font-size": "28px",
         height: 80,
         width: 80,
         "background-fit": "cover",
@@ -86,6 +87,7 @@ let cy = cytoscape({
 
 let sourceNodeId = null;
 let sourceNode = null;
+let lastNodeId = defaultNodes.at(-1).data.id;
 
 cy.on("tap", "node", function (event) {
   const node = event.target;
@@ -115,7 +117,7 @@ cy.on("tap", "node", function (event) {
 
 cy.on("tap", function (event) {
   if (event.target === cy) {
-    const newNodeId = "NewNode_" + Date.now();
+    const newNodeId = String.fromCharCode(lastNodeId.charCodeAt(0) + 1);
 
     const position = event.position || event.cyPosition;
 
@@ -133,6 +135,37 @@ cy.on("tap", function (event) {
 
       sourceNodeId = null;
     }
+
+    lastNodeId = newNodeId;
+
+    const nodeEdges = {};
+
+    cy.elements()
+      .edges()
+      .forEach((edge) => {
+        const sourceNodeId = edge.source().id();
+        const targetNodeId = edge.target().id();
+        const weight = edge.data("weight");
+
+        // Create an object with weight and targetNodeId
+        const edgeObj = { weight, targetNodeId };
+
+        // Add edge object to the source node's array
+        if (nodeEdges[sourceNodeId]) {
+          nodeEdges[sourceNodeId].push(edgeObj);
+        } else {
+          nodeEdges[sourceNodeId] = [edgeObj];
+        }
+
+        // Add edge object to the target node's array
+        if (nodeEdges[targetNodeId]) {
+          nodeEdges[targetNodeId].push(edgeObj);
+        } else {
+          nodeEdges[targetNodeId] = [edgeObj];
+        }
+      });
+
+    console.log(nodeEdges);
 
     cy.layout().run();
   }
