@@ -128,10 +128,14 @@ function handleNodeMove(event) {
 }
 
 function kruskal(edges) {
-  const mst = [];
-  const parent = {};
-  const rank = {};
+  const mst = []; // Array vazio para armazenar as arestas da árvore espalhada mínima
+  const parent = {}; // Objeto para armazenar o pai de cada nó na árvore
+  const rank = {}; // Objeto para armazenar a classificação de cada nó na árvore
+
+  // Ordenar as arestas em ordem crescente de peso
   edges.sort((a, b) => a.weight - b.weight);
+
+  // encontrar o pai de um nó usando o algoritmo de compressão de caminho
   function find(node) {
     if (parent[node] !== node) {
       parent[node] = find(parent[node]);
@@ -139,23 +143,30 @@ function kruskal(edges) {
     return parent[node];
   }
 
+  // unir dois conjuntos de nós usando união por rank
   function union(node1, node2) {
     const root1 = find(node1);
     const root2 = find(node2);
 
+    // Verificar se o conjunto do root1 tem uma classificação menor que o conjunto do root2
     if (rank[root1] < rank[root2]) {
-      parent[root1] = root2;
-    } else if (rank[root1] > rank[root2]) {
-      parent[root2] = root1;
-    } else {
-      parent[root2] = root1;
-      rank[root1]++;
+      parent[root1] = root2; // O conjunto do root1 se torna filho do conjunto do root2
+    }
+    // Verificar se o conjunto do root1 tem uma classificação maior que o conjunto do root2
+    else if (rank[root1] > rank[root2]) {
+      parent[root2] = root1; // O conjunto do root2 se torna filho do conjunto do root1
+    }
+    // Caso contrário, ambos têm a mesma classificação, então podemos escolher qualquer um como pai
+    else {
+      parent[root2] = root1; // O conjunto do root2 se torna filho do conjunto do root1
+      rank[root1]++; // Aumentar a classificação do conjunto do root1
     }
   }
 
   for (const edge of edges) {
-    const { node1, node2, weight } = edge;
+    const { node1, node2 } = edge;
 
+    // Inicializar o pai e a classificação dos nós, se ainda não foram inicializados
     if (!parent[node1]) {
       parent[node1] = node1;
       rank[node1] = 0;
@@ -165,9 +176,11 @@ function kruskal(edges) {
       rank[node2] = 0;
     }
 
+    // Verificar se os nós pertencem a diferentes conjuntos na árvore
     if (find(node1) !== find(node2)) {
       mst.push(edge);
 
+      // Realizar a união dos conjuntos
       union(node1, node2);
     }
   }
