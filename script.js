@@ -41,23 +41,17 @@ function updateEdgesWeights(node) {
   cy.style().update();
 }
 
-function generateGraphAsObject(edges) {
-  const graph = {};
+function getFormattedGraphEdges(edges) {
+  const graphEdges = [];
 
   for (const edge of edges) {
-    const sourceNode = edge.source().id();
-    const targetNode = edge.target().id();
+    const node1 = edge.source().id();
+    const node2 = edge.target().id();
     const weight = edge.data("weight");
 
-    const edgeObj = { targetNode, weight };
-
-    if (graph[sourceNode]) {
-      graph[sourceNode].push(edgeObj);
-    } else {
-      graph[sourceNode] = [edgeObj];
-    }
+    graphEdges.push({ node1, node2, weight });
   }
-  return graph;
+  return graphEdges;
 }
 
 function setSelectedNode(node) {
@@ -113,7 +107,9 @@ function handleNodeClick(event) {
   if (!selectedNode) {
     setSelectedNode(node);
   } else {
-    createEdge(selectedNode, node);
+    selectedNode === node
+      ? resetSelectedNode()
+      : createEdge(selectedNode, node);
   }
 }
 
@@ -128,7 +124,55 @@ function handleNodeMove(event) {
   const grabbedNode = event.target;
   updateEdgesWeights(grabbedNode);
   // move this to a button when implementation is fineshed
-  console.log(generateGraphAsObject(cy.elements().edges()));
+  getFormattedGraphEdges(cy.elements().edges());
+}
+
+function kruskal(edges) {
+  const mst = [];
+  const parent = {};
+  const rank = {};
+  edges.sort((a, b) => a.weight - b.weight);
+  function find(node) {
+    if (parent[node] !== node) {
+      parent[node] = find(parent[node]);
+    }
+    return parent[node];
+  }
+
+  function union(node1, node2) {
+    const root1 = find(node1);
+    const root2 = find(node2);
+
+    if (rank[root1] < rank[root2]) {
+      parent[root1] = root2;
+    } else if (rank[root1] > rank[root2]) {
+      parent[root2] = root1;
+    } else {
+      parent[root2] = root1;
+      rank[root1]++;
+    }
+  }
+
+  for (const edge of edges) {
+    const { node1, node2, weight } = edge;
+
+    if (!parent[node1]) {
+      parent[node1] = node1;
+      rank[node1] = 0;
+    }
+    if (!parent[node2]) {
+      parent[node2] = node2;
+      rank[node2] = 0;
+    }
+
+    if (find(node1) !== find(node2)) {
+      mst.push(edge);
+
+      union(node1, node2);
+    }
+  }
+
+  return mst;
 }
 
 let cy = cytoscape({
@@ -156,15 +200,15 @@ let cy = cytoscape({
       selector: ".selected",
       style: {
         "border-color": "red",
+        "border-width": 6,
       },
     },
     {
       selector: "edge",
       style: {
-        label: (ele) => ele.data("weight"),
+        label: (ele) => `R$${ele.data("weight")} milhões`,
         width: 6,
         "curve-style": "bezier",
-        "target-arrow-shape": "triangle",
         "line-color": "black",
         "target-arrow-color": "black",
         "font-size": "28px",
