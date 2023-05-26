@@ -24,7 +24,7 @@ function calculateDistance(source, target) {
   const dx = Math.abs(pos1.x - pos2.x);
   const dy = Math.abs(pos1.y - pos2.y);
   const distance = Math.sqrt(dx * dx + dy * dy);
-  return Math.floor(distance / 50);
+  return Math.floor(distance / 60);
 }
 
 function updateEdgesWeights(node) {
@@ -41,18 +41,30 @@ function updateEdgesWeights(node) {
   cy.style().update();
 }
 
-function getFormattedGraphEdges(edges) {
-  const graphEdges = [];
-
-  for (const edge of edges) {
-    const node1 = edge.source().id();
-    const node2 = edge.target().id();
-    const weight = edge.data("weight");
-
-    graphEdges.push({ node1, node2, weight });
-  }
-  return graphEdges;
+function findGraphEdgeByNodes(edges, source, target) {
+  return edges.find(
+    (edge) => edge.source().id() == source && edge.target().id() == target
+  );
 }
+
+function drawMST(mstEdges) {
+  let i = 0;
+  const interval = setInterval(() => {
+    if (i == mstEdges.length - 1) clearInterval(interval);
+    mstEdges[i].addClass("connected");
+    i++;
+    cy.style().update();
+  }, 2000);
+}
+
+function getEdgeData(edge) {
+  const node1 = edge.source();
+  const node2 = edge.target();
+  const weight = calculateDistance(node1, node2);
+  return { node1: node1.id(), node2: node2.id(), weight };
+}
+
+/////////// global state functions ///////////
 
 function setSelectedNode(node) {
   selectedNode = node;
@@ -62,6 +74,13 @@ function setSelectedNode(node) {
 function resetSelectedNode() {
   selectedNode.removeClass("selected");
   selectedNode = null;
+}
+
+function resetMSTEdges() {
+  cy.elements()
+    .edges()
+    .forEach((edge) => edge.removeClass("connected"));
+  cy.style().update();
 }
 
 /////////// behavior functions ///////////
@@ -99,6 +118,75 @@ function createNode(event) {
   lastNodeId = newNodeId;
 }
 
+/////////// Algorithms ///////////
+
+function kruskal(edges) {
+  const edgesData = edges.map(getEdgeData);
+
+  const mstEdges = []; // Array com as instances das arestas
+  const mst = []; // Array vazio para armazenar os valores das arestas da árvore espalhada mínima
+  const parent = {}; // Objeto para armazenar o pai de cada nó na árvore
+  const rank = {}; // Objeto para armazenar a classificação de cada nó na árvore
+
+  // Ordenar as arestas em ordem crescente de peso
+  edgesData.sort((a, b) => a.weight - b.weight);
+
+  // encontrar o pai de um nó usando o algoritmo de compressão de caminho
+  function find(node) {
+    if (parent[node] !== node) {
+      parent[node] = find(parent[node]);
+    }
+    return parent[node];
+  }
+
+  // unir dois conjuntos de nós usando união por rank
+  function union(node1, node2) {
+    const mstEdge = findGraphEdgeByNodes(edges, node1, node2);
+    const root1 = find(node1);
+    const root2 = find(node2);
+
+    // Verificar se o conjunto do root1 tem uma classificação menor que o conjunto do root2
+    if (rank[root1] < rank[root2]) {
+      parent[root1] = root2; // O conjunto do root1 se torna filho do conjunto do root2
+    }
+    // Verificar se o conjunto do root1 tem uma classificação maior que o conjunto do root2
+    else if (rank[root1] > rank[root2]) {
+      parent[root2] = root1; // O conjunto do root2 se torna filho do conjunto do root1
+    }
+    // Caso contrário, ambos têm a mesma classificação, então podemos escolher qualquer um como pai
+    else {
+      parent[root2] = root1; // O conjunto do root2 se torna filho do conjunto do root1
+      rank[root1]++; // Aumentar a classificação do conjunto do root1
+    }
+
+    mstEdges.push(mstEdge);
+  }
+
+  for (const edge of edgesData) {
+    const { node1, node2 } = edge;
+
+    // Inicializar o pai e a classificação dos nós, se ainda não foram inicializados
+    if (!parent[node1]) {
+      parent[node1] = node1;
+      rank[node1] = 0;
+    }
+    if (!parent[node2]) {
+      parent[node2] = node2;
+      rank[node2] = 0;
+    }
+
+    // Verificar se os nós pertencem a diferentes conjuntos na árvore
+    if (find(node1) !== find(node2)) {
+      mst.push(edge);
+
+      // Realizar a união dos conjuntos
+      union(node1, node2);
+    }
+  }
+
+  return [mst, mstEdges];
+}
+
 /////////// events callbacks /////////
 
 function handleNodeClick(event) {
@@ -123,69 +211,12 @@ function handleCanvasClick(event) {
 function handleNodeMove(event) {
   const grabbedNode = event.target;
   updateEdgesWeights(grabbedNode);
-  // move this to a button when implementation is fineshed
-  getFormattedGraphEdges(cy.elements().edges());
 }
 
-function kruskal(edges) {
-  const mst = []; // Array vazio para armazenar as arestas da árvore espalhada mínima
-  const parent = {}; // Objeto para armazenar o pai de cada nó na árvore
-  const rank = {}; // Objeto para armazenar a classificação de cada nó na árvore
-
-  // Ordenar as arestas em ordem crescente de peso
-  edges.sort((a, b) => a.weight - b.weight);
-
-  // encontrar o pai de um nó usando o algoritmo de compressão de caminho
-  function find(node) {
-    if (parent[node] !== node) {
-      parent[node] = find(parent[node]);
-    }
-    return parent[node];
-  }
-
-  // unir dois conjuntos de nós usando união por rank
-  function union(node1, node2) {
-    const root1 = find(node1);
-    const root2 = find(node2);
-
-    // Verificar se o conjunto do root1 tem uma classificação menor que o conjunto do root2
-    if (rank[root1] < rank[root2]) {
-      parent[root1] = root2; // O conjunto do root1 se torna filho do conjunto do root2
-    }
-    // Verificar se o conjunto do root1 tem uma classificação maior que o conjunto do root2
-    else if (rank[root1] > rank[root2]) {
-      parent[root2] = root1; // O conjunto do root2 se torna filho do conjunto do root1
-    }
-    // Caso contrário, ambos têm a mesma classificação, então podemos escolher qualquer um como pai
-    else {
-      parent[root2] = root1; // O conjunto do root2 se torna filho do conjunto do root1
-      rank[root1]++; // Aumentar a classificação do conjunto do root1
-    }
-  }
-
-  for (const edge of edges) {
-    const { node1, node2 } = edge;
-
-    // Inicializar o pai e a classificação dos nós, se ainda não foram inicializados
-    if (!parent[node1]) {
-      parent[node1] = node1;
-      rank[node1] = 0;
-    }
-    if (!parent[node2]) {
-      parent[node2] = node2;
-      rank[node2] = 0;
-    }
-
-    // Verificar se os nós pertencem a diferentes conjuntos na árvore
-    if (find(node1) !== find(node2)) {
-      mst.push(edge);
-
-      // Realizar a união dos conjuntos
-      union(node1, node2);
-    }
-  }
-
-  return mst;
+function handleCalculateMST() {
+  resetMSTEdges();
+  const [mst, mstEdges] = kruskal(cy.elements().edges());
+  drawMST(mstEdges);
 }
 
 let cy = cytoscape({
@@ -236,6 +267,13 @@ let cy = cytoscape({
         "text-valign": "center",
       },
     },
+    {
+      selector: ".connected",
+      style: {
+        "line-color": "blue",
+        width: 12,
+      },
+    },
   ],
 
   elements: {
@@ -256,6 +294,9 @@ cy.zoom({
 });
 cy.zoomingEnabled(false);
 
-cy.on("tap", handleCanvasClick);
-cy.on("tap", "node", handleNodeClick);
-cy.on("position", "node", handleNodeMove);
+cy.on("tap", handleCanvasClick); // tap on canva
+cy.on("tap", "node", handleNodeClick); // tap on node
+cy.on("position", "node", handleNodeMove); // move node
+document
+  .getElementById("calculate")
+  .addEventListener("click", handleCalculateMST);
