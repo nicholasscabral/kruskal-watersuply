@@ -13,6 +13,9 @@ const defaultEdges = [
   // { data: { source: "D", target: "E", weight: 10 } },
 ];
 
+const DRAW_INTERVAL_IN_MS = 2000;
+const DIVISOR_CONSTANT = 60;
+
 let selectedNode = null;
 let lastNodeId = defaultNodes.at(-1).data.id;
 
@@ -24,7 +27,7 @@ function calculateDistance(source, target) {
   const dx = Math.abs(pos1.x - pos2.x);
   const dy = Math.abs(pos1.y - pos2.y);
   const distance = Math.sqrt(dx * dx + dy * dy);
-  return Math.floor(distance / 60);
+  return Math.floor(distance / DIVISOR_CONSTANT);
 }
 
 function updateEdgesWeights(node) {
@@ -54,7 +57,7 @@ function drawMST(mstEdges) {
     mstEdges[i].addClass("connected");
     i++;
     cy.style().update();
-  }, 2000);
+  }, DRAW_INTERVAL_IN_MS);
 }
 
 function getEdgeData(edge) {
