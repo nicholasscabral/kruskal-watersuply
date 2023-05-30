@@ -1,23 +1,11 @@
-const defaultNodes = [
-  { data: { id: "A" } },
-  { data: { id: "B" } },
-  // { data: { id: "C" } },
-  // { data: { id: "D" } },
-  // { data: { id: "E" } },
-];
-
-const defaultEdges = [
-  // { data: { source: "A", target: "B", weight: 10 } },
-  // { data: { source: "B", target: "C", weight: 10 } },
-  // { data: { source: "C", target: "D", weight: 10 } },
-  // { data: { source: "D", target: "E", weight: 10 } },
-];
+const defaultNodes = [{ data: { id: "A" } }, { data: { id: "B" } }];
 
 const DRAW_INTERVAL_IN_MS = 2000;
 const DIVISOR_CONSTANT = 60;
 
 let selectedNode = null;
 let lastNodeId = defaultNodes.at(-1).data.id;
+let isPaused = false;
 
 /////////// utils functions ///////////
 
@@ -53,10 +41,16 @@ function findGraphEdgeByNodes(edges, source, target) {
 function drawMST(mstEdges) {
   let i = 0;
   const interval = setInterval(() => {
-    if (i == mstEdges.length - 1) clearInterval(interval);
-    mstEdges[i].addClass("connected");
-    i++;
-    cy.style().update();
+    if (i == mstEdges.length) {
+      updateStatusLabel("Finalizado");
+      handleFinishDrawing(mstEdges);
+      clearInterval(interval);
+    }
+    if (!isPaused) {
+      mstEdges[i].addClass("connected");
+      i++;
+      cy.style().update();
+    }
   }, DRAW_INTERVAL_IN_MS);
 }
 
@@ -82,8 +76,21 @@ function resetSelectedNode() {
 function resetMSTEdges() {
   cy.elements()
     .edges()
-    .forEach((edge) => edge.removeClass("connected"));
+    .forEach((edge) => {
+      edge.removeClass("connected");
+      edge.removeClass("finished");
+    });
   cy.style().update();
+}
+
+function updateStatusLabel(status = null) {
+  const statusElement = document.getElementById("status");
+  if (status) {
+    statusElement.innerHTML = `Status: ${status}`;
+  } else {
+    const statusText = isPaused ? "Pausado" : "Desenhando";
+    statusElement.innerHTML = `Status: ${statusText}`;
+  }
 }
 
 /////////// behavior functions ///////////
@@ -218,8 +225,40 @@ function handleNodeMove(event) {
 
 function handleCalculateMST() {
   resetMSTEdges();
+  isPaused = false;
+  updateStatusLabel();
   const [mst, mstEdges] = kruskal(cy.elements().edges());
   drawMST(mstEdges);
+}
+
+function handlePause() {
+  isPaused = true;
+  updateStatusLabel();
+}
+
+function handlePlay() {
+  isPaused = false;
+  updateStatusLabel();
+}
+
+function handleClearGraph() {
+  cy.remove("edges");
+  lastNodeId = defaultNodes.at(-1).data.id;
+  cy.nodes().forEach((node) => {
+    const keep = ["A", "B"];
+    const nodeId = node.id();
+    if (!keep.includes(nodeId)) {
+      cy.remove(node);
+    }
+  });
+}
+
+function handleFinishDrawing(mstEdges) {
+  mstEdges.forEach((edge) => {
+    edge.removeClass("connected");
+    edge.addClass("finished");
+  });
+  cy.style().update();
 }
 
 let cy = cytoscape({
@@ -277,11 +316,18 @@ let cy = cytoscape({
         width: 12,
       },
     },
+    {
+      selector: ".finished",
+      style: {
+        "line-color": "green",
+        width: 12,
+      },
+    },
   ],
 
   elements: {
     nodes: defaultNodes,
-    edges: defaultEdges,
+    edges: [],
   },
 
   layout: {
@@ -300,6 +346,7 @@ cy.zoomingEnabled(false);
 cy.on("tap", handleCanvasClick); // tap on canva
 cy.on("tap", "node", handleNodeClick); // tap on node
 cy.on("position", "node", handleNodeMove); // move node
-document
-  .getElementById("calculate")
-  .addEventListener("click", handleCalculateMST);
+$("#start").click(handleCalculateMST);
+$("#play").click(handlePlay);
+$("#pause").click(handlePause);
+$("#clear").click(handleClearGraph);
