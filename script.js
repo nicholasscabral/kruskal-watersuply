@@ -6,6 +6,7 @@ const DIVISOR_CONSTANT = 60;
 let selectedNode = null;
 let lastNodeId = defaultNodes.at(-1).data.id;
 let isPaused = false;
+let interval = null;
 
 /////////// utils functions ///////////
 
@@ -40,7 +41,7 @@ function findGraphEdgeByNodes(edges, source, target) {
 
 function drawMST(mstEdges) {
   let i = 0;
-  const interval = setInterval(() => {
+  interval = setInterval(() => {
     if (i == mstEdges.length) {
       updateStatusLabel("Finalizado");
       handleFinishDrawing(mstEdges);
@@ -225,6 +226,8 @@ function handleNodeMove(event) {
 
 function handleCalculateMST() {
   resetMSTEdges();
+  clearInterval(interval);
+  interval = null;
   isPaused = false;
   updateStatusLabel();
   const [mst, mstEdges] = kruskal(cy.elements().edges());
