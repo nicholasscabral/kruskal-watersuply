@@ -219,6 +219,11 @@ function handleCanvasClick(event) {
   cy.layout().run();
 }
 
+function handleEdgeClick(event) {
+  const edge = event.target;
+  cy.remove(edge);
+}
+
 function handleNodeMove(event) {
   const grabbedNode = event.target;
   updateEdgesWeights(grabbedNode);
@@ -347,9 +352,10 @@ cy.zoom({
 });
 cy.zoomingEnabled(false);
 
-cy.on("tap", handleCanvasClick); // tap on canva
-cy.on("tap", "node", handleNodeClick); // tap on node
-cy.on("position", "node", handleNodeMove); // move node
+cy.on("tap", handleCanvasClick);
+cy.on("tap", "node", handleNodeClick);
+cy.on("position", "node", handleNodeMove);
+cy.on("tap", "edge", handleEdgeClick);
 $("#start").click(handleCalculateMST);
 $("#play").click(handlePlay);
 $("#pause").click(handlePause);
