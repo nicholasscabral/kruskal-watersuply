@@ -6,7 +6,7 @@ const DIVISOR_CONSTANT = 60;
 let selectedNode = null;
 let lastNodeId = defaultNodes.at(-1).data.id;
 let isPaused = false;
-let interval = null;
+let drawingMstAsyncFunction = null;
 
 /////////// utils functions ///////////
 
@@ -41,11 +41,11 @@ function findGraphEdgeByNodes(edges, source, target) {
 
 function drawMST(mstEdges) {
   let i = 0;
-  interval = setInterval(() => {
+  drawingMstAsyncFunction = setInterval(() => {
     if (i == mstEdges.length) {
       updateStatusLabel("Finalizado");
       handleFinishDrawing(mstEdges);
-      clearInterval(interval);
+      clearInterval(drawingMstAsyncFunction);
     }
     if (!isPaused) {
       mstEdges[i].addClass("connected");
@@ -74,7 +74,7 @@ function resetSelectedNode() {
   selectedNode = null;
 }
 
-function resetMSTEdges() {
+function resetMSTDrawing() {
   cy.elements()
     .edges()
     .forEach((edge) => {
@@ -225,9 +225,9 @@ function handleNodeMove(event) {
 }
 
 function handleCalculateMST() {
-  resetMSTEdges();
-  clearInterval(interval);
-  interval = null;
+  resetMSTDrawing();
+  clearInterval(drawingMstAsyncFunction);
+  drawingMstAsyncFunction = null;
   isPaused = false;
   updateStatusLabel();
   const [mst, mstEdges] = kruskal(cy.elements().edges());
@@ -246,6 +246,7 @@ function handlePlay() {
 
 function handleClearGraph() {
   cy.remove("edges");
+  clearInterval(drawingMstAsyncFunction);
   lastNodeId = defaultNodes.at(-1).data.id;
   cy.nodes().forEach((node) => {
     const keep = ["A", "B"];
@@ -279,7 +280,7 @@ let cy = cytoscape({
         height: 80,
         width: 80,
         "background-fit": "cover",
-        "background-image": "assets/water-supply.png",
+        "background-image": "assets/water-supply.jpg",
         "border-color": "#000",
         "border-width": 3,
         "border-opacity": 0.5,
@@ -288,7 +289,7 @@ let cy = cytoscape({
     {
       selector: ".selected",
       style: {
-        "border-color": "red",
+        "border-color": "blue",
         "border-width": 6,
       },
     },
